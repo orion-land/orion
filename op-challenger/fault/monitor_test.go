@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ethereum-optimism/optimism/op-service/clock"
 	"github.com/ethereum/go-ethereum/common"
@@ -87,7 +88,7 @@ func setupMonitorTest(t *testing.T, allowedGames []common.Address) (*gameMonitor
 	fetchBlockNum := func(ctx context.Context) (uint64, error) {
 		return 1234, nil
 	}
-	monitor := newGameMonitor(logger, clock.SystemClock, fetchBlockNum, allowedGames, source, games.CreateGame)
+	monitor := newGameMonitor(logger, time.Duration(0), clock.SystemClock, fetchBlockNum, allowedGames, source, games.CreateGame)
 	return monitor, source, games
 }
 
@@ -95,7 +96,7 @@ type stubGameSource struct {
 	games []FaultDisputeGame
 }
 
-func (s *stubGameSource) FetchAllGamesAtBlock(ctx context.Context, blockNumber *big.Int) ([]FaultDisputeGame, error) {
+func (s *stubGameSource) FetchAllGamesAtBlock(ctx context.Context, earliest uint64, blockNumber *big.Int) ([]FaultDisputeGame, error) {
 	return s.games, nil
 }
 

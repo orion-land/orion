@@ -25,6 +25,7 @@ func TestGameLoader_FetchAllGames(t *testing.T) {
 	tests := []struct {
 		name        string
 		caller      *mockMinimalDisputeGameFactoryCaller
+		earliest    uint64
 		blockNumber *big.Int
 		expectedErr error
 		expectedLen int
@@ -32,13 +33,23 @@ func TestGameLoader_FetchAllGames(t *testing.T) {
 		{
 			name:        "success",
 			caller:      newMockMinimalDisputeGameFactoryCaller(10, false, false),
+			earliest:    0,
 			blockNumber: big.NewInt(1),
 			expectedErr: nil,
 			expectedLen: 10,
 		},
 		{
+			name:        "expired game ignored",
+			caller:      newMockMinimalDisputeGameFactoryCaller(10, false, false),
+			earliest:    500,
+			blockNumber: big.NewInt(1),
+			expectedErr: nil,
+			expectedLen: 5,
+		},
+		{
 			name:        "game count error",
 			caller:      newMockMinimalDisputeGameFactoryCaller(10, true, false),
+			earliest:    0,
 			blockNumber: big.NewInt(1),
 			expectedErr: gameCountErr,
 			expectedLen: 0,
@@ -46,6 +57,7 @@ func TestGameLoader_FetchAllGames(t *testing.T) {
 		{
 			name:        "game index error",
 			caller:      newMockMinimalDisputeGameFactoryCaller(10, false, true),
+			earliest:    0,
 			blockNumber: big.NewInt(1),
 			expectedErr: gameIndexErr,
 			expectedLen: 0,
@@ -53,6 +65,7 @@ func TestGameLoader_FetchAllGames(t *testing.T) {
 		{
 			name:        "no games",
 			caller:      newMockMinimalDisputeGameFactoryCaller(0, false, false),
+			earliest:    0,
 			blockNumber: big.NewInt(1),
 			expectedErr: nil,
 			expectedLen: 0,
@@ -60,6 +73,7 @@ func TestGameLoader_FetchAllGames(t *testing.T) {
 		{
 			name:        "missing block number",
 			caller:      newMockMinimalDisputeGameFactoryCaller(0, false, false),
+			earliest:    0,
 			expectedErr: ErrMissingBlockNumber,
 			expectedLen: 0,
 		},
@@ -72,10 +86,11 @@ func TestGameLoader_FetchAllGames(t *testing.T) {
 			t.Parallel()
 
 			loader := NewGameLoader(test.caller)
-			games, err := loader.FetchAllGamesAtBlock(context.Background(), test.blockNumber)
+			games, err := loader.FetchAllGamesAtBlock(context.Background(), test.earliest, test.blockNumber)
 			require.ErrorIs(t, err, test.expectedErr)
 			require.Len(t, games, test.expectedLen)
 			expectedGames := test.caller.games
+			expectedGames = expectedGames[len(expectedGames)-test.expectedLen:]
 			if test.expectedErr != nil {
 				expectedGames = make([]FaultDisputeGame, 0)
 			}
@@ -90,7 +105,7 @@ func generateMockGames(count uint64) []FaultDisputeGame {
 	for i := uint64(0); i < count; i++ {
 		games[i] = FaultDisputeGame{
 			Proxy:     common.BigToAddress(big.NewInt(int64(i))),
-			Timestamp: i,
+			Timestamp: i * 100,
 		}
 	}
 
