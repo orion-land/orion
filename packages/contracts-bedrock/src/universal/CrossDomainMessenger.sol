@@ -122,6 +122,9 @@ abstract contract CrossDomainMessenger is
     ///         can therefore not be relayed again.
     mapping(bytes32 => bool) public successfulMessages;
 
+
+    uint256 public receiveNonce;
+
     /// @notice Address of the sender of the currently executing message on the other chain. If the
     ///         value of this variable is the default value (0x00000000...dead) then no message is
     ///         currently being executed. Use the xDomainMessageSender getter which will throw an
@@ -275,7 +278,7 @@ abstract contract CrossDomainMessenger is
             if (tx.origin == Constants.ESTIMATION_ADDRESS) {
                 revert("CrossDomainMessenger: failed to relay message");
             }
-
+            receiveNonce = _nonce;
             return;
         }
 
